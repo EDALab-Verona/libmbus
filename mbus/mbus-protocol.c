@@ -3037,17 +3037,14 @@ mbus_data_fixed_parse(mbus_frame *frame, mbus_data_fixed *data)
 int
 mbus_data_variable_parse(mbus_frame *frame, mbus_data_variable *data)
 {
-    mbus_data_record *record = NULL;
-    size_t i, j;
-
     if (frame && data)
     {
         // parse header
         data->nrecords = 0;
         data->more_records_follow = 0;
-        i = MBUS_DATA_VARIABLE_HEADER_LENGTH;
 
-        if(frame->data_size < i)
+
+        if(frame->data_size < MBUS_DATA_VARIABLE_HEADER_LENGTH)
         {
             snprintf(error_str, sizeof(error_str), "Variable header too short.");
             return -1;
@@ -3067,8 +3064,25 @@ mbus_data_variable_parse(mbus_frame *frame, mbus_data_variable *data)
         data->header.signature[0]    = frame->data[10];
         data->header.signature[1]    = frame->data[11];
 
-        data->record = NULL;
 
+        return custom_length_mbus_data_variable_parse(frame,data,MBUS_DATA_VARIABLE_HEADER_LENGTH);
+    }
+    return -1;
+
+}
+
+//------------------------------------------------------------------------------
+/// Parse the variable-length data of a M-Bus/WM-Bus frame
+//------------------------------------------------------------------------------
+
+int
+custom_length_mbus_data_variable_parse(mbus_frame *frame, mbus_data_variable *data, size_t i)
+{
+    mbus_data_record *record = NULL;
+    size_t j;
+    if (frame && data)
+    {
+        data->record = NULL;
         while (i < frame->data_size)
         {
             // Skip filler dif=2F
@@ -3312,6 +3326,18 @@ mbus_frame_data_parse(mbus_frame *frame, mbus_frame_data *data)
             data->type = MBUS_DATA_TYPE_VARIABLE;
             return mbus_data_variable_parse(frame, &(data->data_var));
         }
+        else if (frame->control_information == MBUS_CONTROL_INFO_RESP_VARIABLE_4BH)
+        {
+            if (frame->data_size == 0)
+            {
+                snprintf(error_str, sizeof(error_str), "Got zero data_size.");
+
+                return -1;
+            }
+
+            data->type = MBUS_DATA_TYPE_VARIABLE;
+            return custom_length_mbus_data_variable_parse(frame, &(data->data_var), MBUS_DATA_VARIABLE_HEADER_LENGTH_4BH);
+        }
         else
         {
             snprintf(error_str, sizeof(error_str), "Unknown control information 0x%.2x", frame->control_information);
@@ -3323,6 +3349,65 @@ mbus_frame_data_parse(mbus_frame *frame, mbus_frame_data *data)
     snprintf(error_str, sizeof(error_str), "Wrong direction in frame (master to slave)");
 
     return -1;
+}
+// -----------------------------------------------------------------------------
+/// Convert a wmbus message to mbus format
+// -----------------------------------------------------------------------------
+int
+wmbus_to_mbus_conversion(uint8_t* wmbus_frame, size_t wmbus_size,
+                         uint8_t* mbus_frame, size_t mbus_size)
+{
+    // 0x68 and packet length
+    mbus_frame[0] = 0x68;
+    mbus_frame[1] = mbus_size;
+    mbus_frame[2] = mbus_size;
+    mbus_frame[3] = 0x68;
+    // Assign C-Field
+    switch (wmbus_frame[1])
+    {
+        case 0x44:
+            mbus_frame[4] = 0x38;
+            break;
+        default:
+            snprintf(error_str, sizeof(error_str), "The C-Field is not recognized %d",wmbus_frame[1]);
+            return -1;
+    }
+    // Check if this needs to be randomized (A-Field)
+    mbus_frame[5] = 0x01;
+    // We expect CI field to be something that can be parsed, we include it in
+    // the payload
+    // mbus_frame[6] = wmbus_frame[12];
+    int m_position = 6;
+    int w_position = 11;
+    // The number of blocks is payload / (16+2), counting CRC
+    int count = (wmbus_size-w_position)/18;
+    int array_position = 0;
+    while (count >= 0)
+    {
+
+        int len = m_position + 16;
+        if (count == 0)
+            len = wmbus_size - 2;
+        for (int i = m_position; i < len; i++)
+        {
+            w_position++;
+            mbus_frame[i] = wmbus_frame[w_position];
+        }
+        if (count >=1)
+        {
+            w_position += 2;
+            m_position += 16;
+        }
+         count--;
+    }
+    uint8_t cksum = mbus_frame[4];
+    for (int k = 5; k < mbus_size+4; k++)
+    {
+        cksum += mbus_frame[k];
+    }
+    mbus_frame[mbus_size+4] = cksum;
+    mbus_frame[mbus_size+5] = 0x16;
+
 }
 
 //------------------------------------------------------------------------------

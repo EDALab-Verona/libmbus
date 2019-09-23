@@ -195,6 +195,8 @@ typedef struct _mbus_data_variable_header {
 } mbus_data_variable_header;
 
 #define MBUS_DATA_VARIABLE_HEADER_LENGTH 12
+// Manage W4B160201 possible CI field value 7A
+#define MBUS_DATA_VARIABLE_HEADER_LENGTH_4BH 4
 
 //
 // VARIABLE LENGTH DATA FORMAT
@@ -419,6 +421,8 @@ typedef struct _mbus_data_secondary_address {
 #define MBUS_CONTROL_INFO_RESP_FIXED_MSB     0x77
 
 #define MBUS_CONTROL_INFO_RESP_VARIABLE      0x72
+// Manage W4B160201 possible CI field value 7A
+#define MBUS_CONTROL_INFO_RESP_VARIABLE_4BH  0x7A
 #define MBUS_CONTROL_INFO_RESP_VARIABLE_MSB  0x76
 
 //
@@ -501,7 +505,9 @@ unsigned int mbus_manufacturer_id(char *manufacturer);
 // Since libmbus writes some special characters (ASCII > 0x7F) into the XML output (e.g. �C for centigrade == ASCII 0xB0)
 // it is useful to attach the appropriate code page for postprocessing.
 #define MBUS_XML_PROCESSING_INSTRUCTION         "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-
+// Convert WMBus packet to a Mbus one
+int wmbus_to_mbus_conversion(uint8_t* wmbus_frame, size_t wmbus_size,
+                             uint8_t* mbus_frame, size_t mbus_size);
 //
 // Event callback functions
 //
@@ -537,9 +543,9 @@ int mbus_parse(mbus_frame *frame, unsigned char *data, size_t data_size);
 
 int mbus_data_fixed_parse   (mbus_frame *frame, mbus_data_fixed    *data);
 int mbus_data_variable_parse(mbus_frame *frame, mbus_data_variable *data);
-
+// Manage W4B160201 possible CI field value 7A
+int custom_length_mbus_data_variable_parse(mbus_frame *frame, mbus_data_variable *data, size_t headerLength);
 int mbus_frame_data_parse   (mbus_frame *frame, mbus_frame_data *data);
-
 int mbus_frame_pack(mbus_frame *frame, unsigned char *data, size_t data_size);
 
 int mbus_frame_verify(mbus_frame *frame);
@@ -643,4 +649,3 @@ int mbus_is_secondary_address(const char * value);
 #endif
 
 #endif /* _MBUS_PROTOCOL_H_ */
-
