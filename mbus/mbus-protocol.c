@@ -3359,11 +3359,11 @@ wmbus_to_mbus_conversion(uint8_t* wmbus_frame, size_t wmbus_size,
 {
     // 0x68 and packet length
     mbus_frame[0] = 0x68;
-    mbus_frame[1] = mbus_size;
-    mbus_frame[2] = mbus_size;
+    mbus_frame[1] = mbus_size-6;
+    mbus_frame[2] = mbus_size-6;
     mbus_frame[3] = 0x68;
     // Assign C-Field
-    switch (wmbus_frame[1])
+    switch (wmbus_frame[4])
     {
         case 0x44:
             mbus_frame[4] = 0x38;
@@ -3376,37 +3376,21 @@ wmbus_to_mbus_conversion(uint8_t* wmbus_frame, size_t wmbus_size,
     mbus_frame[5] = 0x01;
     // We expect CI field to be something that can be parsed, we include it in
     // the payload
-    // mbus_frame[6] = wmbus_frame[12];
     int m_position = 6;
-    int w_position = 11;
-    // The number of blocks is payload / (16+2), counting CRC
-    int count = (wmbus_size-w_position)/18;
+    int w_position = 13;
     int array_position = 0;
-    while (count >= 0)
+    // Skip the crc
+    for (; w_position < wmbus_size - 2 ; m_position++, w_position++)
     {
-
-        int len = m_position + 16;
-        if (count == 0)
-            len = wmbus_size - 2;
-        for (int i = m_position; i < len; i++)
-        {
-            w_position++;
-            mbus_frame[i] = wmbus_frame[w_position];
-        }
-        if (count >=1)
-        {
-            w_position += 2;
-            m_position += 16;
-        }
-         count--;
+        mbus_frame[m_position] = wmbus_frame[w_position];
     }
     uint8_t cksum = mbus_frame[4];
-    for (int k = 5; k < mbus_size+4; k++)
+    for (int k = 5; k < m_position; k++)
     {
         cksum += mbus_frame[k];
     }
-    mbus_frame[mbus_size+4] = cksum;
-    mbus_frame[mbus_size+5] = 0x16;
+    mbus_frame[m_position] = cksum;
+    mbus_frame[m_position+1] = 0x16;
 
 }
 
