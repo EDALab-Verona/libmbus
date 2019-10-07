@@ -3338,6 +3338,18 @@ mbus_frame_data_parse(mbus_frame *frame, mbus_frame_data *data)
             data->type = MBUS_DATA_TYPE_VARIABLE;
             return custom_length_mbus_data_variable_parse(frame, &(data->data_var), MBUS_DATA_VARIABLE_HEADER_LENGTH_4BH);
         }
+        else if (frame->control_information == MBUS_CONTROL_INFO_RESP_VARIABLE_0BH)
+        {
+            if (frame->data_size == 0)
+            {
+                snprintf(error_str, sizeof(error_str), "Got zero data_size.");
+
+                return -1;
+            }
+
+            data->type = MBUS_DATA_TYPE_VARIABLE;
+            return custom_length_mbus_data_variable_parse(frame, &(data->data_var), MBUS_DATA_VARIABLE_HEADER_LENGTH_0BH);
+        }
         else
         {
             snprintf(error_str, sizeof(error_str), "Unknown control information 0x%.2x", frame->control_information);

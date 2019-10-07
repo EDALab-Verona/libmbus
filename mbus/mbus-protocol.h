@@ -197,6 +197,7 @@ typedef struct _mbus_data_variable_header {
 #define MBUS_DATA_VARIABLE_HEADER_LENGTH 12
 // Manage W4B160201 possible CI field value 7A
 #define MBUS_DATA_VARIABLE_HEADER_LENGTH_4BH 4
+#define MBUS_DATA_VARIABLE_HEADER_LENGTH_0BH 0
 
 //
 // VARIABLE LENGTH DATA FORMAT
@@ -423,6 +424,8 @@ typedef struct _mbus_data_secondary_address {
 #define MBUS_CONTROL_INFO_RESP_VARIABLE      0x72
 // Manage W4B160201 possible CI field value 7A
 #define MBUS_CONTROL_INFO_RESP_VARIABLE_4BH  0x7A
+// Manage W4B160201 possible CI field value 78
+#define MBUS_CONTROL_INFO_RESP_VARIABLE_0BH  0x78
 #define MBUS_CONTROL_INFO_RESP_VARIABLE_MSB  0x76
 
 //
@@ -560,6 +563,7 @@ const char *mbus_data_fixed_function(int status);
 long        mbus_data_record_storage_number(mbus_data_record *record);
 long        mbus_data_record_tariff(mbus_data_record *record);
 int         mbus_data_record_device(mbus_data_record *record);
+const char *mbus_data_record_decode(mbus_data_record *record);
 
 //
 // M-Bus frame data struct access/write functions
