@@ -509,7 +509,7 @@ unsigned int mbus_manufacturer_id(char *manufacturer);
 // it is useful to attach the appropriate code page for postprocessing.
 #define MBUS_XML_PROCESSING_INSTRUCTION         "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 // Convert WMBus packet to a Mbus one
-int wmbus_to_mbus_conversion(uint8_t* wmbus_frame, size_t wmbus_size,
+int wmbus_to_mbus_conversion(uint8_t* wmbus_frame,
                              uint8_t* mbus_frame, size_t mbus_size);
 //
 // Event callback functions

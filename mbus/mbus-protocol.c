@@ -3365,35 +3365,31 @@ mbus_frame_data_parse(mbus_frame *frame, mbus_frame_data *data)
 // -----------------------------------------------------------------------------
 /// Convert a wmbus message to mbus format
 // -----------------------------------------------------------------------------
-int
-wmbus_to_mbus_conversion(uint8_t* wmbus_frame, size_t wmbus_size,
-                         uint8_t* mbus_frame, size_t mbus_size)
+int wmbus_to_mbus_conversion(uint8_t *wmbus_frame, uint8_t *mbus_frame, size_t mbus_size)
 {
     // 0x68 and packet length
     mbus_frame[0] = 0x68;
     mbus_frame[1] = mbus_size-6;
     mbus_frame[2] = mbus_size-6;
     mbus_frame[3] = 0x68;
+    size_t msg_size = wmbus_frame[0];
     // Assign C-Field
-    switch (wmbus_frame[4])
-    {
-        case 0x44:
-            mbus_frame[4] = 0x38;
-            break;
-        default:
-            snprintf(error_str, sizeof(error_str), "The C-Field is not recognized %d",wmbus_frame[1]);
-            return -1;
+    switch (wmbus_frame[1]) {
+    case 0x44:
+        mbus_frame[4] = 0x38;
+        break;
+    default:
+        snprintf(error_str, sizeof(error_str), "The C-Field is not recognized %d", wmbus_frame[1]);
+        return -1;
     }
     // Check if this needs to be randomized (A-Field)
     mbus_frame[5] = 0x01;
     // We expect CI field to be something that can be parsed, we include it in
     // the payload
     int m_position = 6;
-    int w_position = 13;
-    int array_position = 0;
+    int w_position = 10;
     // Skip the crc
-    for (; w_position < wmbus_size - 2 ; m_position++, w_position++)
-    {
+    for (; w_position <= msg_size; m_position++, w_position++) {
         mbus_frame[m_position] = wmbus_frame[w_position];
     }
     uint8_t cksum = mbus_frame[4];
